@@ -15,7 +15,7 @@
    and decide on how to drive the car correspondingly. See the description of
    the `loop` method below for more details.
 """
-
+#testing
 import logging
 import time
 from event import Event
@@ -137,5 +137,4 @@ def loop():
                 startTime = 0                              #reinitialize the timer for next time
         elif state == STOPPED : 
                 pass
-        elif state == PARK : 
-                
+
