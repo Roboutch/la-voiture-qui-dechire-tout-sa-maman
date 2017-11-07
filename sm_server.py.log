@@ -1,0 +1,11 @@
+11/06/2017 09:58:50 PM logger created [/home/student/Desktop/bacar_distrib/Central Unit/example/sm_server.py.log]
+11/06/2017 09:58:50 PM Running on python version3.5.2 (default, Nov 17 2016, 17:05:23) 	[GCC 5.4.0 20160609]
+11/06/2017 09:58:50 PM import parameters [/home/student/Desktop/bacar_distrib/Central Unit/example/config_server.json]
+11/06/2017 09:58:50 PM Using machine module: state_machine
+11/06/2017 09:58:50 PM Template StateMachine has been initialized
+11/06/2017 09:58:50 PM connecting to the broker: localhost:1883
+11/06/2017 09:58:50 PM Connected with result code 0
+11/06/2017 09:58:59 PM got COMMAND from remote operator: FORTH
+11/06/2017 09:58:59 PM timer set 
+11/06/2017 09:59:04 PM time's up
+11/06/2017 09:59:04 PM you just stopped the car, here is the current state 2

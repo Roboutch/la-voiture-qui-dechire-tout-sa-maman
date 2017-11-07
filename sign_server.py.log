@@ -1,0 +1,7 @@
+11/06/2017 09:58:51 PM logger created [/home/student/Desktop/bacar_distrib/Central Unit/example/sign_server.py.log]
+11/06/2017 09:58:51 PM Running on python version3.5.2 (default, Nov 17 2016, 17:05:23) 	[GCC 5.4.0 20160609]
+11/06/2017 09:58:51 PM import parameters [/home/student/Desktop/bacar_distrib/Central Unit/example/config_server.json]
+11/06/2017 09:58:51 PM Using detector module: sign_detector
+11/06/2017 09:58:51 PM Simplistic SignDetector has been initialized
+11/06/2017 09:58:51 PM connecting to the broker: localhost:1883
+11/06/2017 09:58:51 PM Connected with result code 0
