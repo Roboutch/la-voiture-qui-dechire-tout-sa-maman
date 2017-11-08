@@ -37,7 +37,7 @@ class CarState :
 
 # Setup up the state machine. The following code is called when the state
 # machine is loaded for the first time.
-logging.info('Template StateMachine has been initialized')
+logging.info('State machine Initialize. Ready to rock, sir !')
 
 # The next variable is a global variable used to store the state between
 # successive calls to loop()
@@ -56,10 +56,12 @@ def StartTimer(interval) :
 def Stop_Car() : 
     global state
     global SubMovement
+    global MainAction
     SubMovement = None 
+    MainAction = None
     state = CarState.STOPPED 
     Car.send(0, 0, 0, 0) 
-    logging.info( "you just stopped the car, here is the current state " +  str(state) ) 
+    logging.info( "you just stopped the car" ) 
 
 
 
@@ -78,6 +80,12 @@ def GoForth( time_interval, speed ) :
         yield InnerState.IN
     yield InnerState.DONE
 
+
+def SubSpiralRoutine ( speed ) : 
+    for i in range ( 7200 ) : 
+        Car.send(0, 0, speed, i ) 
+        yield InnerState.IN
+    yield InnerState.DONE
 
 def Turn( angle, radius, speed  ) : 
     ratio_angelOfRotation_Radius = 5       #gotta determine by trial and error
@@ -99,22 +107,21 @@ def Turn( angle, radius, speed  ) :
 
 def Square(side_length , speed ) : 
     for i in range(4) : 
+        logging.info( " going forth " ) 
         yield GoForth(side_length / speed , speed)
+        logging.info( " turning " )
         yield Rotate(90) 
     Stop_Car()
     yield None
 
-def Spiral() : 
+def Spiral(speed) : 
    logging.info( "spiral being called " ) 
-   index = 0
-   while index < 7200 : 
-       yield Rotate( index ) 
-       index += 1 
+   yield SubSpiralRoutine(speed)  
    Stop_Car()
    yield None
 
 def ForhtMainAction (interval) : 
-    yield GoForth(interval) 
+    yield GoForth(interval, 3) 
     Stop_Car()
     yield None 
 
@@ -141,16 +148,16 @@ def loop():
         if event.type == Event.CMD and event.val == "GO":
             logging.info( " Up and running, boss !" ) 
         elif event.type == Event.CMD and event.val == "SPIRAL" : 
-            MainAction = Spiral() 
+            MainAction = Spiral(10) 
             state = CarState.MOVING
         elif event.type == Event.CMD and event.val == "FORTH":
             MainAction = ForhtMainAction(3) 
             state = CarState.MOVING
         elif event.type == Event.CMD and event.val == "SQUARE": 
-            MainAction = Square(1, 90)
+            MainAction = Square(5, 5)
             state = CarState.MOVING
         elif event.type == Event.CMD and event.val == "STOP":
-            Car_Stop()
+            Stop_Car()
 
 
         elif event.type == Event.PATH:
@@ -174,7 +181,7 @@ def loop():
                 (event.val['x'], event.val['y'], event.val['u'], event.val['v']))
             pass
     else : 
-        if not (state ==  CarState.IDLE or state == CarState.STOPPED) : 
+        if state == CarState.MOVING : 
             if SubMovement == None or next( SubMovement ) == InnerState.DONE:        # next has to come after !!!!!!! 
                 SubMovement = next(MainAction) 
               
