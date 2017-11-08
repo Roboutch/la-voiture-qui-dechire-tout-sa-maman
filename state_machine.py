@@ -22,12 +22,17 @@ from event import Event
 from car import Car
 
 
-# constants for the different states in which we can be operating
-IDLE = 1
-STOPPED = 2
-SPIRAL = 3 
-FORTH = 4
-# You can add other states here
+class InnerState : 
+    IN = 1
+    DONE = 0
+
+
+class CarState : 
+    # constants for the different states in which we can be operating
+    IDLE = 1
+    STOPPED = 2
+    MOVING = 3 
+    # You can add other states here
 
 
 # Setup up the state machine. The following code is called when the state
@@ -36,30 +41,84 @@ logging.info('Template StateMachine has been initialized')
 
 # The next variable is a global variable used to store the state between
 # successive calls to loop()
-state = IDLE
+state = CarState.IDLE
+MainAction = None 
+SubMovement = None 
+
+def StartTimer(interval) : 
+    time_at_the_beginning = time.time()
+    time_difference = ( time_at_the_beginning + interval) - time.time()
+    while ( time_difference > 0 ) : 
+        yield InnerState.IN
+        time_difference = ( time_at_the_beginning + interval) - time.time()
+    yield InnerState.DONE
+
+def Stop_Car() : 
+    global state
+    global SubMovement
+    SubMovement = None 
+    state = CarState.STOPPED 
+    Car.send(0, 0, 0, 0) 
+    logging.info( "you just stopped the car, here is the current state " +  str(state) ) 
 
 
-#all global variable 
-startTime = 0  #to keep track of the time the car has been moving 
-Time_interval = 5 # second 
-Current_Spiral = 0 
+
+################# subfunctions ( movement ) ################################## 
+
+def Rotate(angle) : 
+    Car.send(0, 0, 0.05, angle) 
+    time.sleep(0.01) 
+    Car.send(0, 0, 0, 0) 
+    yield InnerState.DONE
+
+def GoForth( time_interval, speed ) : 
+    timer = StartTimer( time_interval ) 
+    Car.send( 0, 0, speed, 0.)
+    while ( next(timer) != 0 ) : 
+        yield InnerState.IN
+    yield InnerState.DONE
+
+
+def Turn( angle, radius, speed  ) : 
+    ratio_angelOfRotation_Radius = 5       #gotta determine by trial and error
+    distance = angle * radius 
+    time_to_make_rotation = speed * distance  
+
+    timer = StartTimer(time_to_make_rotation)
+
+    Car.send( 0, 0, speed, ratio_angelOfRotation_Radius * radius)
+    while (next( timer ) != InnerState.DONE ) : 
+        yield InnerState.IN
+    yield InnerState.DONE
+    
+    
+    
+##############################################################################
+
+###################### Main Action ###########################################
+
+def Square(side_length , speed ) : 
+    for i in range(4) : 
+        yield GoForth(side_length / speed , speed)
+        yield Rotate(90) 
+    Stop_Car()
+    yield None
 
 def Spiral() : 
    logging.info( "spiral being called " ) 
    index = 0
    while index < 7200 : 
-       Car.send (0, 0, 3.0, index ) 
+       yield Rotate( index ) 
        index += 1 
-       logging.info( "being called in the loop " ) 
-       yield index
-   #logging.info ( "finish my spiral, couldn't be happier " )  
    Stop_Car()
+   yield None
 
-def Stop_Car() : 
-    global state
-    state = STOPPED 
-    Car.send(0, 0, 0, 0) 
-    logging.info( "you just stopped the car, here is the current state " +  str(state) ) 
+def ForhtMainAction (interval) : 
+    yield GoForth(interval) 
+    Stop_Car()
+    yield None 
+
+##################################################################################
 
 def loop():
     '''State machine control loop.
@@ -74,31 +133,26 @@ def loop():
       are ignored while u encodes the speed and v the relative angle to turn
       to.
     '''
-    global Current_Spiral #to use with advanced way to write function 
-    global startTime
-    global Time_interval
     global state  # define state to be a global variable
+    global SubMovement
+    global MainAction
     event = Event.poll()
     if event is not None:        # only if there is some change ( instantiate action ) #me
         if event.type == Event.CMD and event.val == "GO":
-            # A command by the remote computer to start the car
-            logging.info("remotely ordered to GO!")
-
-            # TODO: here you would change status, and actuate car if necessary
+            logging.info( " Up and running, boss !" ) 
         elif event.type == Event.CMD and event.val == "SPIRAL" : 
-            Current_Spiral = Spiral() 
-            state = SPIRAL
-            logging.info( "event SPIRAL called " ) 
+            MainAction = Spiral() 
+            state = CarState.MOVING
         elif event.type == Event.CMD and event.val == "FORTH":
-            state = FORTH
-            Car.send( 0, 0, 0.5, 0.) 
+            MainAction = ForhtMainAction(3) 
+            state = CarState.MOVING
+        elif event.type == Event.CMD and event.val == "SQUARE": 
+            MainAction = Square(1, 90)
+            state = CarState.MOVING
         elif event.type == Event.CMD and event.val == "STOP":
-            logging.info("remotely ordered to stop")
             Car_Stop()
-            # TODO: here you would order to car to stop immediately, and go to
-            # stop state
-        # Note that you can decide to act on  other evant.val value for events
-        # of type Event.CMD!
+
+
         elif event.type == Event.PATH:
             # You received the PATH dictionary emitted by the path detector
             # you can access this dictionary in event.val
@@ -120,21 +174,7 @@ def loop():
                 (event.val['x'], event.val['y'], event.val['u'], event.val['v']))
             pass
     else : 
-        #action to do continuously  
-        if state == SPIRAL : 
-            logging.info ( "in a spiral " ) 
-            next( Current_Spiral )                  #slightly more advanced way to do action  
-            time.sleep( 3 )                  #the whole code stops for 3 seconds otherwise rotate to fast 
-        elif state == FORTH : 
-            #logging.info( "current state : " + str(state)) 
-            #Car.send( 0, 0, 0.5 , 0 )                #start moving forward #dunno why but it bugs when put there
-            if startTime == 0 :                 # if isn't keeping track of the time yet 
-                logging.info( "timer set ") 
-                startTime = time.time() 
-            if time.time() >= startTime + Time_interval :   #time's up 
-                logging.info( "time's up") 
-                Stop_Car()                                 #defined above 
-                startTime = 0                              #reinitialize the timer for next time
-        elif state == STOPPED : 
-                pass
-
+        if not (state ==  CarState.IDLE or state == CarState.STOPPED) : 
+            if SubMovement == None or next( SubMovement ) == InnerState.DONE:        # next has to come after !!!!!!! 
+                SubMovement = next(MainAction) 
+              
